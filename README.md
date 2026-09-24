@@ -20,8 +20,8 @@
 
 {Make a list of websites that you found helpful in this project}
 
-- [Web Site Name](http://url.link.goes.here)
-- [Web Site Name](http://url.link.goes.here)
+- [ideaj](https://www.jetbrains.com/idea/download/?section=windows)
+- [W3Schools](.com/KOTLIN/index.php)
 
 # Future Work
 
