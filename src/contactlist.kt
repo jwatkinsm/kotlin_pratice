@@ -8,9 +8,14 @@ data class Contact(
     val email: String
 )
 
-    class ContactNotebook(private val storageFile: File) {
+class ContactNotebook(
+    private val storageFile: File,
+    private val keyFile: File = File(storageFile.parentFile, "${storageFile.name}.key")
+) {
     // Mutable Collection Contacts
     private val contacts = mutableListOf<Contact>()
+    private val encryptionKey = MilestoneCryptoEngine.loadOrCreateKey(keyFile)
+
         init {
             loadFromFile()
         }
@@ -37,19 +42,27 @@ data class Contact(
              * Note: In a larger app, you would swap this for JSON frameworks like kotlinx.serialization.
              */
             private fun saveToFile() {
-                val fileContent = StringBuilder()
-                for (contact in contacts) {
-                    val safeName = contact.name.replace(",", "\\,")
-                    val safeEmail = contact.email.replace(",", "\\,")
-                    fileContent.append("${contact.id},$safeName,$safeEmail\n")
+                val parent = storageFile.parentFile
+                if (parent != null && !parent.exists() && !parent.mkdirs() && !parent.isDirectory) {
+                    throw IOException("Unable to create storage directory: ${parent.path}")
                 }
 
-                try {
-                    storageFile.writeText(fileContent.toString(), Charsets.UTF_8)
-                    println("✅ Successfully saved updates to disk storage.")
-                } catch (e: IOException) {
-                    println("❌ Critical File Error: Unable to save data. Reason: ${e.message}")
+                val fileContent = contacts.joinToString(
+                    separator = "\n",
+                    postfix = if (contacts.isEmpty()) "" else "\n"
+                ) { contact ->
+                    val encryptedName = MilestoneCryptoEngine.encrypt(contact.name, encryptionKey)
+                    val encryptedEmail = MilestoneCryptoEngine.encrypt(contact.email, encryptionKey)
+                    listOf(
+                        contact.id,
+                        encryptedName.iv,
+                        encryptedName.ciphertext,
+                        encryptedEmail.iv,
+                        encryptedEmail.ciphertext
+                    ).joinToString(",")
                 }
+                storageFile.writeText(fileContent, Charsets.UTF_8)
+                println("✅ Successfully saved encrypted contacts to disk storage.")
             }
         /**
          * Checks if a file exists, reads lines, and recreates our data classes.
@@ -60,26 +73,57 @@ data class Contact(
                 return
             }
 
-            try {
-                val lines = storageFile.readLines(Charsets.UTF_8)
-                contacts.clear()
-
-                for (line in lines) {
-                    if (line.isBlank()) continue
-                    val parts = line.split(",")
-                    if (parts.size >= 3) {
-                        val id = parts[0]
-                        val name = parts[1].replace("\\,", ",")
-                        val email = parts[2].replace("\\,", ",")
-                        contacts.add(Contact(id, name, email))
+            val lines = storageFile.readLines(Charsets.UTF_8)
+            var foundLegacyRecords = false
+            for ((lineIndex, line) in lines.withIndex()) {
+                if (line.isBlank()) continue
+                val parts = splitEscapedFields(line)
+                when (parts.size) {
+                    3 -> {
+                        contacts.add(Contact(parts[0], parts[1], parts[2]))
+                        foundLegacyRecords = true
                     }
+                    5 -> {
+                        val name = MilestoneCryptoEngine.decrypt(
+                            EncryptedPayload(parts[1], parts[2]),
+                            encryptionKey
+                        )
+                        val email = MilestoneCryptoEngine.decrypt(
+                            EncryptedPayload(parts[3], parts[4]),
+                            encryptionKey
+                        )
+                        contacts.add(Contact(parts[0], name, email))
+                    }
+                    else -> throw IOException("Invalid contact record at line ${lineIndex + 1}")
                 }
-                println("💾 Successfully loaded ${contacts.size} records from local disk.")
-            } catch (e: IOException) {
-                println("❌ Critical File Error: Could not read the database file. Reason: ${e.message}")
-            } catch (e: Exception) {
-                println("⚠️ Data Error: Save file structure is corrupted. Resetting notebook buffer.")
             }
+            if (foundLegacyRecords) saveToFile()
+            println("💾 Successfully loaded ${contacts.size} records from local disk.")
+        }
+
+        private fun splitEscapedFields(line: String): List<String> {
+            val fields = mutableListOf<String>()
+            val field = StringBuilder()
+            var index = 0
+            while (index < line.length) {
+                when (val character = line[index]) {
+                    '\\' -> {
+                        if (index + 1 < line.length && (line[index + 1] == '\\' || line[index + 1] == ',')) {
+                            field.append(line[++index])
+                        } else {
+                            field.append(character)
+                        }
+                    }
+                    ',' -> {
+                        fields.add(field.toString())
+                        field.setLength(0)
+                    }
+                    else -> field.append(character)
+                }
+                index++
+            }
+            fields.add(field.toString())
+            return fields
         }
     }
 fun main() {
