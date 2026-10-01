@@ -1,5 +1,8 @@
+package contacts
+
 import java.io.File
 import java.io.IOException
+import javax.swing.SwingUtilities
 import kotlin.uuid.Uuid
 
 data class Contact(
@@ -129,67 +132,7 @@ class ContactNotebook(
 fun main() {
     val datafile = File("contacts.txt")
     val notebook = ContactNotebook(datafile)
-
-    // Seed contact list
-    notebook.addContact("Alice Developer", "alice@kotlin.org")
-    notebook.addContact("Bob Cryptographer", "bob@security.net")
-    notebook.addContact("Charlie Manager", "charlie@company.com")
-
-    var running = true
-
-    while (running) {
-        println("\n=== 📓 MILESTONE 1: LOCAL CONTACT NOTEBOOK ===")
-        println("1. View All Contacts")
-        println("2. Add New Contact")
-        println("3. Search Contacts")
-        println("4. Exit Application")
-        print("Select an option: ")
-
-        when (readLine()?.trim()) {
-            "1" -> {
-                println("\n📋 ALL CONTACTS:")
-                printTable(notebook.getAllContacts())
-            }
-            "2" -> {
-                print("Enter Name: ")
-                val name = readln()?.trim().orEmpty()
-                print("Enter Email: ")
-                val email = readln()?.trim().orEmpty()
-
-                if (name.isNotBlank() && email.isNotBlank()) {
-                    notebook.addContact(name, email)
-                } else {
-                    println("❌ Error: Name and Email cannot be empty!")
-                }
-            }
-            "3" -> {
-                print("Enter search term (name or email): ")
-                val query = readln()?.trim().orEmpty()
-                val results = notebook.searchContacts(query)
-                println("\n🔍 SEARCH RESULTS FOR \"$query\":")
-                printTable(results)
-            }
-            "4" -> {
-                println("Closing application. Milestone 1 Complete!")
-                running = false
-            }
-            else -> {
-                println("⚠️ Invalid option, please choose between 1 and 4.")
-            }
-        }
+    SwingUtilities.invokeLater {
+        ContactListGui(notebook).show()
     }
-}
-//table format for terminal1
-fun printTable(contactsList: List<Contact>) {
-    if (contactsList.isEmpty()) {
-        println("   (No contact records discovered)")
-        return
-    }
-    println("--------------------------------------------------------------------------------")
-    System.out.printf("%-38s | %-20s | %-25s\n", "UNIQUE ID", "NAME", "EMAIL")
-    println("--------------------------------------------------------------------------------")
-    for (contact in contactsList) {
-        System.out.printf("%-38s | %-20s | %-25s\n", contact.id, contact.name, contact.email)
-    }
-    println("--------------------------------------------------------------------------------")
 }
