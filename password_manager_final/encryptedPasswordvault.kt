@@ -97,32 +97,31 @@ class EncryptedFileVault(private val storageFile: File, private val masterKey: S
         }
     }
 }
-
 // test runner
 
 /**
 fun main() {
-    println("🧪 --- STEP 3 TESTING: INTEGRATED STORAGE LAYER ---")
+println("🧪 --- STEP 3 TESTING: INTEGRATED STORAGE LAYER ---")
 
-    val mockVaultFile = File("./vault_test_run.txt")
-    val salt = passwordcryto.generateSalt()
-    val derivedKey = passwordcryto.deriveKey("vaultpass".toCharArray(), salt)
+val mockVaultFile = File("./vault_test_run.txt")
+val salt = passwordcryto.generateSalt()
+val derivedKey = passwordcryto.deriveKey("vaultpass".toCharArray(), salt)
 
-    // Test 1: Initialize Vault and Write Data
-    val writeVault = EncryptedFileVault(mockVaultFile, derivedKey)
-    writeVault.addAccount("TestService", "test_user", "SecretPass99!")
-    println("💾 Record committed to mockVaultFile structure loop.")
+// Test 1: Initialize Vault and Write Data
+val writeVault = EncryptedFileVault(mockVaultFile, derivedKey)
+writeVault.addAccount("TestService", "test_user", "SecretPass99!")
+println("💾 Record committed to mockVaultFile structure loop.")
 
-    // Test 2: Read Data Back from New Context Instance
-    val readVault = EncryptedFileVault(mockVaultFile, derivedKey)
-    val readList = readVault.getDecryptedList()
+// Test 2: Read Data Back from New Context Instance
+val readVault = EncryptedFileVault(mockVaultFile, derivedKey)
+val readList = readVault.getDecryptedList()
 
-    if (readList.isNotEmpty() && readList[0].decryptedPassword == "SecretPass99!") {
-        println("✅ SUCCESS: File rehydrated, verified, and correctly decrypted from disk!")
-    } else {
-        println("❌ FAILURE: File could not be parsed or read correctly.")
-    }
+if (readList.isNotEmpty() && readList[0].decryptedPassword == "SecretPass99!") {
+println("✅ SUCCESS: File rehydrated, verified, and correctly decrypted from disk!")
+} else {
+println("❌ FAILURE: File could not be parsed or read correctly.")
+}
 
-    // Cleanup temporary mock asset files
-    mockVaultFile.delete()
+// Cleanup temporary mock asset files
+mockVaultFile.delete()
 }*/
