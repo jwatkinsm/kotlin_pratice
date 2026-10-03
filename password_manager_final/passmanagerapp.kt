@@ -41,7 +41,6 @@ private class PasswordManagerApp : JFrame("Secure PassManager Suite") {
         showLockedScreen()
     }
 
-    //lock screen
     private fun showLockedScreen(message: String = "") {
         val passwordField = JPasswordField(24)
         val panel = JPanel(GridLayout(0, 1, 8, 8)).apply {
@@ -59,16 +58,17 @@ private class PasswordManagerApp : JFrame("Secure PassManager Suite") {
         repaint()
     }
 
-    //checkfor master password
     private fun unlock(password: CharArray) {
         try {
             val salt = if (saltFile.exists()) {
                 saltFile.readBytes()
             } else {
+                // Reuse the salt on future launches so the same master password derives the same key.
                 passwordcryto.generateSalt().also(saltFile::writeBytes)
             }
             val key = passwordcryto.deriveKey(password, salt)
             val unlockedVault = EncryptedFileVault(vaultFile, key)
+            // Decrypting existing entries verifies the derived key before opening the dashboard.
             unlockedVault.getDecryptedList()
             viewModel = VaultViewModel(unlockedVault)
             revealedAccountId = null
@@ -76,11 +76,11 @@ private class PasswordManagerApp : JFrame("Secure PassManager Suite") {
         } catch (exception: Exception) {
             showLockedScreen("Could not unlock vault: ${exception.message ?: exception.javaClass.simpleName}")
         } finally {
+            // Clear the password characters once key derivation is complete.
             password.fill('\u0000')
         }
     }
 
-    //password dashboard
     private fun showDashboard() {
         val serviceField = JTextField()
         val usernameField = JTextField()
@@ -156,13 +156,13 @@ private class PasswordManagerApp : JFrame("Secure PassManager Suite") {
         repaint()
     }
 
-    //password reveal
     private fun toggleSelectedPassword() {
         val row = accountTable.selectedRow
         if (row < 0) {
             JOptionPane.showMessageDialog(this, "Select an account first.", "No account selected", JOptionPane.INFORMATION_MESSAGE)
             return
         }
+        // Resolve the selected row against the filtered table model, not the full vault list.
         val account = visibleAccounts.getOrNull(accountTable.convertRowIndexToModel(row)) ?: return
         revealedAccountId = if (revealedAccountId == account.id) null else account.id
         refreshAccounts()
@@ -173,6 +173,7 @@ private class PasswordManagerApp : JFrame("Secure PassManager Suite") {
         accountTableModel.rowCount = 0
         visibleAccounts = viewModel?.searchAccounts(accountSearchField.text) ?: emptyList()
         visibleAccounts.forEach { account ->
+            // Keep passwords masked unless the user explicitly reveals that account.
             val password = if (account.id == revealedAccountId) account.decryptedPassword else "••••••••"
             accountTableModel.addRow(arrayOf(account.serviceName, account.username, password))
         }
