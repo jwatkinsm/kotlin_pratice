@@ -14,6 +14,7 @@ object passwordcryto {
     private const val ITERATIONS = 600_000
     private const val KEY_LENGTH = 256
 
+    //encrytion and key generation
     fun generateSalt(): ByteArray {
         val salt = ByteArray(16)
         SecureRandom().nextBytes(salt)
@@ -40,6 +41,7 @@ object passwordcryto {
         )
     }
 
+    //decipher
     fun decrypt(ciphertext: String, iv: String, key: SecretKeySpec): String {
         val cipher = Cipher.getInstance(AES_ALGO)
         val ivBytes = Base64.getDecoder().decode(iv)

@@ -85,6 +85,17 @@ class EncryptedFileVault(private val storageFile: File, private val masterKey: S
             println("❌ Storage Read Error: ${e.message}")
         }
     }
+
+    //search function
+    fun searchList(query: String): List<DecryptedAccountView> {
+        val fullList = getDecryptedList()
+        if (query.isBlank()) return fullList
+
+        return fullList.filter { account ->
+            account.serviceName.contains(query, ignoreCase = true) ||
+                    account.username.contains(query, ignoreCase = true)
+        }
+    }
 }
 
 // test runner

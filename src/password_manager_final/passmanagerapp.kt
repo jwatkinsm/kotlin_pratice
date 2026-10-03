@@ -2,6 +2,7 @@ package password_manager_final
 
 import java.awt.BorderLayout
 import java.awt.Dimension
+import java.awt.FlowLayout
 import java.awt.GridLayout
 import java.io.File
 import javax.swing.BorderFactory
@@ -22,6 +23,8 @@ private class PasswordManagerApp : JFrame("Secure PassManager Suite") {
     private val saltFile = File("./vault_salt.txt")
     private var viewModel: VaultViewModel? = null
     private var revealedAccountId: String? = null
+    private var visibleAccounts: List<DecryptedAccountView> = emptyList()
+    private lateinit var accountSearchField: JTextField
     private val accountTableModel = object : DefaultTableModel(
         arrayOf("Service", "Username", "Password"),
         0
@@ -38,6 +41,7 @@ private class PasswordManagerApp : JFrame("Secure PassManager Suite") {
         showLockedScreen()
     }
 
+    //lock screen
     private fun showLockedScreen(message: String = "") {
         val passwordField = JPasswordField(24)
         val panel = JPanel(GridLayout(0, 1, 8, 8)).apply {
@@ -55,6 +59,7 @@ private class PasswordManagerApp : JFrame("Secure PassManager Suite") {
         repaint()
     }
 
+    //checkfor master password
     private fun unlock(password: CharArray) {
         try {
             val salt = if (saltFile.exists()) {
@@ -75,10 +80,12 @@ private class PasswordManagerApp : JFrame("Secure PassManager Suite") {
         }
     }
 
+    //password dashboard
     private fun showDashboard() {
         val serviceField = JTextField()
         val usernameField = JTextField()
         val passwordField = JPasswordField()
+        accountSearchField = JTextField(24)
 
         val entryForm = JPanel(GridLayout(0, 2, 8, 8)).apply {
             border = BorderFactory.createEmptyBorder(16, 16, 16, 16)
@@ -109,6 +116,19 @@ private class PasswordManagerApp : JFrame("Secure PassManager Suite") {
         }
 
         accountTable.autoCreateRowSorter = true
+        val searchPanel = JPanel(FlowLayout(FlowLayout.LEADING)).apply {
+            add(JLabel("Search service or username"))
+            add(accountSearchField)
+            add(JButton("Search").apply {
+                addActionListener { refreshAccounts() }
+            })
+            add(JButton("Clear").apply {
+                addActionListener {
+                    accountSearchField.text = ""
+                    refreshAccounts()
+                }
+            })
+        }
         val actions = JPanel().apply {
             add(JButton("Reveal / Hide Selected").apply {
                 addActionListener { toggleSelectedPassword() }
@@ -125,7 +145,10 @@ private class PasswordManagerApp : JFrame("Secure PassManager Suite") {
 
         contentPane = JPanel(BorderLayout()).apply {
             add(entryForm, BorderLayout.NORTH)
-            add(JScrollPane(accountTable), BorderLayout.CENTER)
+            add(JPanel(BorderLayout()).apply {
+                add(searchPanel, BorderLayout.NORTH)
+                add(JScrollPane(accountTable), BorderLayout.CENTER)
+            }, BorderLayout.CENTER)
             add(actions, BorderLayout.SOUTH)
         }
         refreshAccounts()
@@ -133,13 +156,14 @@ private class PasswordManagerApp : JFrame("Secure PassManager Suite") {
         repaint()
     }
 
+    //password reveal
     private fun toggleSelectedPassword() {
         val row = accountTable.selectedRow
         if (row < 0) {
             JOptionPane.showMessageDialog(this, "Select an account first.", "No account selected", JOptionPane.INFORMATION_MESSAGE)
             return
         }
-        val account = viewModel?.accountList?.getOrNull(accountTable.convertRowIndexToModel(row)) ?: return
+        val account = visibleAccounts.getOrNull(accountTable.convertRowIndexToModel(row)) ?: return
         revealedAccountId = if (revealedAccountId == account.id) null else account.id
         refreshAccounts()
         accountTable.setRowSelectionInterval(row, row)
@@ -147,7 +171,8 @@ private class PasswordManagerApp : JFrame("Secure PassManager Suite") {
 
     private fun refreshAccounts() {
         accountTableModel.rowCount = 0
-        viewModel?.accountList?.forEach { account ->
+        visibleAccounts = viewModel?.searchAccounts(accountSearchField.text) ?: emptyList()
+        visibleAccounts.forEach { account ->
             val password = if (account.id == revealedAccountId) account.decryptedPassword else "••••••••"
             accountTableModel.addRow(arrayOf(account.serviceName, account.username, password))
         }
@@ -164,8 +189,7 @@ private class PasswordManagerApp : JFrame("Secure PassManager Suite") {
 }
 
 private class VaultViewModel(private val vault: EncryptedFileVault) {
-    val accountList: List<DecryptedAccountView>
-        get() = vault.getDecryptedList()
+    fun searchAccounts(query: String): List<DecryptedAccountView> = vault.searchList(query)
 
     fun saveEntry(service: String, username: String, password: String) {
         require(service.isNotBlank() && username.isNotBlank() && password.isNotBlank()) {

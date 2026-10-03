@@ -1,8 +1,6 @@
 # Overview
 
-{Important! Do not say in this section that this is college assignment. Talk about what you are trying to accomplish as a software engineer to further your learning.}
 
-{Provide a description of the software that you wrote to demonstrate the Kotlin language.}
 In this repostory is where I put some kotlin pratice programs. Such as Contact log and password Management application.
 
 The purpose of writing these programs is to learn kotlin with some pratical programing. While creating some sueful applications
@@ -13,14 +11,9 @@ The purpose of writing these programs is to learn kotlin with some pratical prog
 
 # Development Environment
 
-ENVIROMENT
-intellij
-LASNGUAFE
-kotlin
-java
-LIBRARIES
-swing
-awt
+- Development environment: IntelliJ IDEA
+- Languages: Kotlin and Java
+- UI libraries: Swing and AWT
 
 # Useful Websites
 
@@ -28,6 +21,7 @@ awt
 
 - [ideaj](https://www.jetbrains.com/idea/download/?section=windows)
 - [W3Schools](.com/KOTLIN/index.php)
+- https://www.programiz.com/kotlin-programming/getting-started
 
 # Future Work
 
